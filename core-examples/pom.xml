@@ -19,4 +19,62 @@
 
     </dependencies>
 
+    <build>
+      <defaultGoal>compile</defaultGoal>
+      <plugins>
+	<!-- 
+	   We use the dependency plugin to copy all of our
+	   dependencies (jars) from our local Maven repo to the local
+	   project.  The default location is ./target We do this so
+	   when the jar plugin builds up a classpath naming all the
+	   dependent jars, all those jars are alongside one another,
+	   as they have to be for a class-path entry in the manifest
+	   of a jar. This approach makes it easy to run the program
+	   from a shell script/batchfile/cmd line. You just name the
+	   local jar on the classpath, and the manifest in that jar
+	   'extends' the classpath by naming the other jars, which
+	   MUST be located in the same directory as that first jar.
+	   Then we can just say 'java -cp targets/localJar className'
+	   and NOT have to name ALL the jars needed to run the
+	   program.  And with the addition of a 'mainClass', this is
+	   simplified even further to just 'java -tar
+	   target/localJar'.  
+      -->
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-dependency-plugin</artifactId>
+	<version>2.10</version>
+	<executions>
+	  <execution>
+	    <id>copy-dependencies</id>
+	    <phase>package</phase>
+	    <goals>
+	      <goal>copy-dependencies</goal>
+	    </goals>
+	    <configuration>
+	      <outputDirectory>${project.build.directory}</outputDirectory>
+	    </configuration>
+          </execution>
+	</executions>
+      </plugin>
+
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-jar-plugin</artifactId>
+	<version>2.6</version>
+	<configuration>
+	  <archive>
+	    <manifest>
+	      <!-- 
+	      See how the jar manifest turns out when this option is used
+	      -->
+	      <addClasspath>true</addClasspath>
+	      <mainClass>edu.uw.apl.glimpse.examples.Menu</mainClass>
+	    </manifest>
+	  </archive>
+	</configuration>
+      </plugin>
+      </plugins>
+    </build>
+
 </project>
