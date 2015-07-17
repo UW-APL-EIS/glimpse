@@ -37,11 +37,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Enumeration;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipEntry;
+
+import org.apache.commons.io.FileUtils;
 
 /**
  * @author Stuart Maclean
@@ -80,37 +83,71 @@ public class Menu {
 	if( !us.hasMoreElements() )
 	    return;
 	URL u = us.nextElement();
+
 	String s = u.getPath();
 
-	// LOOK: is the url format consistent across all platforms?
-	s = s.substring( s.indexOf( ":" ) + 1, s.indexOf( "!" ) );
-	
-	File f = new File( s );
-	if( !f.exists() )
-	    return;
-	
+	System.err.println( u );
+	System.err.println( s );
+
 	List<String> classNames = new ArrayList<String>();
+	if( s.startsWith( "file:" ) ) {
+	    /*
+	      Our classpath component was a jar file, locate
+	      other example classes in that jar file.
+	    */
+	    int lo = "file:".length();
+	    int hi = s.indexOf( ".jar!" ) + ".jar!".length();
+	    s = s.substring( lo, hi - 1 );
 
-	ZipFile zf = null;
-	try {
-	    zf = new ZipFile( f );
-	} catch( Exception e ) {
-	    System.err.println( e );
-	    return;
-	}
+	    File f = new File( s );
+	    if( !f.exists() )
+		return;
+	
+	    ZipFile zf = null;
+	    try {
+		zf = new ZipFile( f );
+	    } catch( Exception e ) {
+		System.err.println( e );
+		return;
+	    }
 
-	// Walk the zip contents, converting resource names to class names...
-	Enumeration<? extends ZipEntry> zes = zf.entries();
-	while( zes.hasMoreElements() ) {
-	    ZipEntry ze = zes.nextElement();
-	    String name = ze.getName();
-	    if( !name.startsWith( prefix ) )
-		continue;
-	    if( !name.endsWith( ".class" ) )
-		continue;
-	    name = name.substring( 0, name.length() - ".class".length() );
-	    name = name.replaceAll( "/", "." );
-	    classNames.add( name );
+	    /*
+	      Walk the zip contents, converting resource names to 
+	      class names...
+	    */
+	    Enumeration<? extends ZipEntry> zes = zf.entries();
+	    while( zes.hasMoreElements() ) {
+		ZipEntry ze = zes.nextElement();
+		String name = ze.getName();
+		if( !name.endsWith( ".class" ) )
+		    continue;
+		if( !name.startsWith( prefix ) )
+		    continue;
+		name = name.substring( 0, name.length() - ".class".length() );
+		name = name.replaceAll( "/", "." );
+		classNames.add( name );
+	    }
+	} else {
+	    /*
+	      Our classpath component was a directory, locate
+	      other example classes in that directory
+	    */
+	    int lo = 0;
+	    int hi = s.length() - prefix.length();
+	    s = s.substring( lo, hi );
+	    File dir = new File( s );
+	    Collection<File> fs = FileUtils.listFiles
+		( dir, new String[] { "class" }, true );
+	    lo = s.length();
+	    for( File f : fs ) {
+		String name = f.getPath();
+		hi = name.length() - ".class".length();
+		name = name.substring( lo, hi );
+		if( !name.startsWith( prefix ) )
+		    continue;
+		name = name.replaceAll( File.separator, "." );
+		classNames.add( name );
+	    }
 	}
 	
 	// Sort for the sake of the ensuing menu offered to the user...
@@ -209,6 +246,7 @@ public class Menu {
 		m.invoke( null, new Object[] { new String[0] } );
 	    } catch( Exception e ) {
 		System.err.println( e );
+		e.printStackTrace();
 	    }
 	}
     }
