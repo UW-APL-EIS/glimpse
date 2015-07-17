@@ -113,7 +113,8 @@ public class Example
         animator.start( );
 
         // create a Swing Frame to contain the GlimpseCanvas
-        final JFrame frame = new JFrame( "Glimpse Example" );
+        final JFrame frame = new JFrame( "Glimpse Example: " +
+					 layoutProvider.getClass().getName() );
 
         // This listener is added before adding the SwingGlimpseCanvas to the frame because
         // NEWTGLCanvas adds its own WindowListener and this WindowListener should receive the WindowEvent first
